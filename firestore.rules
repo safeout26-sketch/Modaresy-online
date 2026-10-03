@@ -1,0 +1,32 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    // كلمات خاصة بكل مستخدم
+    match /users/{uid}/words/{wordId} {
+      allow read, delete: if isOwner(uid);
+      allow create, update: if isOwner(uid)
+        && request.resource.data.fr is string && request.resource.data.fr.size() > 0 && request.resource.data.fr.size() < 80
+        && request.resource.data.ar is string && request.resource.data.ar.size() > 0 && request.resource.data.ar.size() < 80;
+    }
+
+    // نتائج الاختبارات
+    match /users/{uid}/quizResults/{resultId} {
+      allow read: if isOwner(uid);
+      allow create: if isOwner(uid)
+        && request.resource.data.score is int
+        && request.resource.data.total is int
+        && request.resource.data.score >= 0
+        && request.resource.data.score <= request.resource.data.total
+        && request.resource.data.total <= 50;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

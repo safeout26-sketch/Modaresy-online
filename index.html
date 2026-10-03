@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#16233F">
+  <title>المدرسة الفرنسية أونلاين</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;700&family=Fraunces:ital,wght@0,500;1,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="config.js"></script>
+</head>
+<body data-role="student">
+<div id="toast" role="status" aria-live="polite"></div>
+<div id="audio-box" hidden></div>
+
+<!-- ============ الصفحة الرئيسية ============ -->
+<div id="home">
+  <header class="brand">
+    <div class="tricolore" aria-hidden="true"><i></i><i></i><i></i></div>
+    <h1>المدرسة الفرنسية</h1>
+    <p class="fr">L’école en ligne</p>
+  </header>
+
+  <main>
+    <!-- دخول الحصة -->
+    <section id="view-join" class="view active">
+      <form id="join-form" class="card" autocomplete="off">
+        <label>اسمك
+          <input id="in-name" required maxlength="40" placeholder="مثال: سلمى">
+        </label>
+        <label>رقم الغرفة
+          <div class="row">
+            <input id="in-room" required pattern="[a-zA-Z0-9_-]{3,40}" maxlength="40" dir="ltr" placeholder="french-101">
+            <button type="button" id="btn-rand" class="ghost">غرفة جديدة</button>
+          </div>
+        </label>
+        <div class="seg" role="radiogroup" aria-label="دورك">
+          <button type="button" role="radio" data-role="student" aria-checked="true">طالب</button>
+          <button type="button" role="radio" data-role="teacher" aria-checked="false">مدرّس</button>
+        </div>
+        <label id="code-wrap" hidden>كود المدرّس
+          <input id="in-code" type="password" placeholder="اتركه فارغًا لو الخادم بدون كود">
+        </label>
+        <button class="primary" type="submit" id="btn-join">ادخل الحصة</button>
+        <p class="hint" id="join-hint">أرسل رابط الغرفة لطلابك بعد الدخول.</p>
+      </form>
+    </section>
+
+    <!-- المكتبة -->
+    <section id="view-library" class="view">
+      <h2>مكتبة المنهج</h2>
+      <p class="hint">الكتب الرسمية تُفتح من مصدرها عند الوزارة. التطبيق لا ينسخها.</p>
+      <div id="lib-official" class="list"></div>
+      <h3>الكتب المقررة</h3>
+      <div id="lib-books" class="list"></div>
+      <h3>مصادر إضافية</h3>
+      <div id="lib-extra" class="list"></div>
+      <h3>تمارين سريعة</h3>
+      <div id="lib-ex"></div>
+    </section>
+
+    <!-- المفردات -->
+    <section id="view-vocab" class="view">
+      <div class="seg three" id="vocab-tabs">
+        <button type="button" data-v="cards" aria-selected="true">بطاقات</button>
+        <button type="button" data-v="quiz" aria-selected="false">اختبار</button>
+        <button type="button" data-v="mine" aria-selected="false">كلماتي</button>
+      </div>
+
+      <div id="v-cards" class="vpane">
+        <select id="cat-select" aria-label="القسم"></select>
+        <button id="flashcard" class="flash" type="button" aria-live="polite">
+          <span class="front fr-word"></span>
+          <span class="back"></span>
+        </button>
+        <div class="row center">
+          <button type="button" id="fc-prev" class="ghost" aria-label="السابقة">السابقة</button>
+          <span id="fc-count" class="muted"></span>
+          <button type="button" id="fc-next" class="ghost" aria-label="التالية">التالية</button>
+        </div>
+        <div class="row center">
+          <button type="button" id="fc-speak" class="ghost">🔊 نطق</button>
+          <button type="button" id="fc-shuffle" class="ghost">ترتيب عشوائي</button>
+          <button type="button" id="fc-known" class="primary small">عرفتها ✓</button>
+        </div>
+        <p id="fc-progress" class="hint"></p>
+      </div>
+
+      <div id="v-quiz" class="vpane" hidden>
+        <div id="quiz-box" class="card"></div>
+      </div>
+
+      <div id="v-mine" class="vpane" hidden>
+        <form id="word-form" class="card">
+          <label>بالفرنسية <input id="w-fr" required maxlength="70" dir="ltr" lang="fr"></label>
+          <label>بالعربية <input id="w-ar" required maxlength="70"></label>
+          <button class="primary" type="submit">أضف الكلمة</button>
+        </form>
+        <div id="mine-list" class="list"></div>
+        <p class="hint" id="mine-hint"></p>
+      </div>
+    </section>
+  </main>
+
+  <nav class="bottom-nav" id="home-nav">
+    <button data-view="join" aria-current="page">الحصة</button>
+    <button data-view="library">المكتبة</button>
+    <button data-view="vocab">المفردات</button>
+  </nav>
+</div>
+
+<!-- ============ غرفة الحصة ============ -->
+<div id="class" hidden>
+  <header class="class-top">
+    <div class="tricolore thin" aria-hidden="true"><i></i><i></i><i></i></div>
+    <div class="ct-main">
+      <strong id="room-title" dir="ltr"></strong>
+      <span id="role-badge" class="badge"></span>
+    </div>
+    <div class="ct-actions">
+      <button id="btn-share" class="ghost small">مشاركة الرابط</button>
+      <button id="btn-people" class="ghost small">👥 <span id="people-count">1</span></button>
+    </div>
+  </header>
+
+  <nav class="tabs" id="class-tabs" role="tablist">
+    <button data-tab="video" class="tab-video" role="tab">فيديو</button>
+    <button data-tab="board" role="tab" aria-selected="true">السبورة</button>
+    <button data-tab="pdf" role="tab">الكتاب PDF</button>
+  </nav>
+
+  <div class="class-body">
+    <main class="main-area">
+      <!-- السبورة -->
+      <section id="panel-board" class="panel">
+        <div class="wb-tools" id="wb-tools">
+          <div class="colors" role="radiogroup" aria-label="اللون">
+            <button data-c="#16233F" style="--c:#16233F" aria-label="كحلي" aria-checked="true"></button>
+            <button data-c="#D23B35" style="--c:#D23B35" aria-label="أحمر"></button>
+            <button data-c="#2447D6" style="--c:#2447D6" aria-label="أزرق"></button>
+            <button data-c="#1E8A4C" style="--c:#1E8A4C" aria-label="أخضر"></button>
+            <button data-c="#E39A00" style="--c:#E39A00" aria-label="أصفر"></button>
+            <button data-c="#8B3FC8" style="--c:#8B3FC8" aria-label="بنفسجي"></button>
+          </div>
+          <label class="size">القلم <input type="range" id="wb-size" min="2" max="20" value="4"></label>
+          <button id="wb-eraser" class="ghost small" aria-pressed="false">🧽 ممحاة</button>
+          <button id="wb-clear" class="ghost small teacher-only">🗑️ مسح</button>
+          <button id="wb-allow" class="ghost small teacher-only" aria-pressed="false">السماح للطلاب بالرسم</button>
+        </div>
+        <div class="wb-wrap">
+          <canvas id="wb" width="1600" height="1000"></canvas>
+          <p id="wb-lock" class="lock" hidden>الرسم للمدرّس حاليًا</p>
+        </div>
+      </section>
+
+      <!-- PDF -->
+      <section id="panel-pdf" class="panel" hidden>
+        <div class="pdf-tools">
+          <div class="teacher-only pdf-load">
+            <label class="file-btn ghost small">رفع PDF<input type="file" id="pdf-file" accept="application/pdf" hidden></label>
+            <input id="pdf-url" dir="ltr" placeholder="أو الصق رابط PDF" aria-label="رابط PDF">
+            <button id="pdf-url-go" class="ghost small">فتح</button>
+          </div>
+          <div class="pdf-nav">
+            <button id="pdf-prev" class="ghost small" aria-label="الصفحة السابقة">‹</button>
+            <span><input id="pdf-page" type="number" min="1" value="1" aria-label="رقم الصفحة"> / <span id="pdf-total">0</span></span>
+            <button id="pdf-next" class="ghost small" aria-label="الصفحة التالية">›</button>
+            <button id="pdf-follow" class="ghost small student-only" aria-pressed="true">متابعة المدرّس</button>
+          </div>
+        </div>
+        <div class="pdf-stage" id="pdf-stage">
+          <p id="pdf-empty" class="empty">لم يُفتح ملف بعد.<span class="teacher-only"> ارفع PDF ليظهر عند الجميع.</span></p>
+          <canvas id="pdf-canvas" hidden></canvas>
+        </div>
+      </section>
+    </main>
+
+    <aside id="panel-video" class="panel video-side">
+      <div id="grid" class="grid"></div>
+    </aside>
+  </div>
+
+  <footer class="controls" id="controls">
+    <button id="c-mic" aria-pressed="false"><span class="ico">🎙️</span><span class="lbl">الميكروفون</span></button>
+    <button id="c-cam" aria-pressed="false"><span class="ico">📹</span><span class="lbl">الكاميرا</span></button>
+    <button id="c-screen" aria-pressed="false"><span class="ico">🖥️</span><span class="lbl">الشاشة</span></button>
+    <button id="c-hand" aria-pressed="false"><span class="ico">✋</span><span class="lbl">رفع اليد</span></button>
+    <button id="c-chat"><span class="ico">💬</span><span class="lbl">شات</span><b id="chat-badge" hidden>0</b></button>
+    <button id="c-leave" class="danger"><span class="ico">⏻</span><span class="lbl">خروج</span></button>
+  </footer>
+
+  <!-- الشات -->
+  <section id="sheet-chat" class="sheet" hidden aria-label="الشات">
+    <header><strong>الشات</strong><button class="ghost small close" data-close>إغلاق</button></header>
+    <div id="chat-log" class="chat-log"></div>
+    <form id="chat-form" class="chat-form" autocomplete="off">
+      <input id="chat-in" maxlength="500" placeholder="اكتب رسالة" aria-label="رسالة">
+      <button class="primary small" type="submit">إرسال</button>
+    </form>
+  </section>
+
+  <!-- الحاضرون -->
+  <section id="sheet-people" class="sheet" hidden aria-label="الحاضرون">
+    <header><strong>الحاضرون</strong><button class="ghost small close" data-close>إغلاق</button></header>
+    <ul id="people-list" class="people"></ul>
+  </section>
+</div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
